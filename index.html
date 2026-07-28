@@ -90,6 +90,13 @@
   .toast.show{opacity:1;}
   .toast.error{background:var(--danger);}
 
+  .install-banner{position:fixed;left:0;right:0;bottom:0;background:var(--amber);color:var(--paper);padding:14px 16px;display:none;align-items:center;gap:12px;z-index:60;box-shadow:0 -4px 12px rgba(0,0,0,0.3);}
+  .install-banner.show{display:flex;}
+  .install-banner .txt{flex:1;font-size:12px;line-height:1.4;}
+  .install-banner .txt b{display:block;font-size:13px;margin-bottom:2px;}
+  .install-banner button{background:var(--paper);color:var(--amber);border:none;border-radius:4px;padding:8px 10px;font-size:16px;cursor:pointer;flex-shrink:0;}
+  .share-btn{background:var(--paper-raised);border:1px solid var(--tape);color:var(--amber);border-radius:4px;padding:0 12px;cursor:pointer;font-size:13px;font-family:'IBM Plex Mono',monospace;}
+
   .menu-wrap{position:relative;}
   .menu-btn{background:var(--paper-raised);border:1px solid var(--tape);color:var(--muted);border-radius:4px;width:34px;height:34px;font-size:16px;cursor:pointer;}
   .menu{position:absolute;right:0;top:40px;background:var(--paper-raised);border:1px solid var(--tape);border-radius:6px;overflow:hidden;z-index:20;display:none;min-width:170px;}
@@ -148,6 +155,7 @@
     <div class="menu-wrap">
       <button class="menu-btn" id="menu-btn">⋮</button>
       <div class="menu" id="menu">
+        <button id="menu-share">📤 Compartir con alguien</button>
         <button id="menu-export">⬇ Exportar copia</button>
         <button id="menu-import">⬆ Importar copia</button>
       </div>
@@ -156,6 +164,14 @@
   <input type="file" id="import-input" accept="application/json" style="display:none;">
 
   <div id="list"></div>
+</div>
+
+<div class="install-banner" id="install-banner">
+  <div class="txt">
+    <b>📲 Instala esta app en tu pantalla de inicio</b>
+    Toca el icono de Compartir (⬆️) abajo o arriba en Safari, y luego "Añadir a pantalla de inicio".
+  </div>
+  <button id="install-dismiss">✕</button>
 </div>
 
 <div class="modal-overlay" id="name-modal">
@@ -456,6 +472,30 @@ function resetForm(){
 }
 
 document.getElementById('search').addEventListener('input', render);
+
+// --- Banner de instalación (solo iOS Safari, no instalada aún) ---
+function isIOS(){ return /iphone|ipad|ipod/i.test(navigator.userAgent); }
+function isStandalone(){ return window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches; }
+if(isIOS() && !isStandalone() && sessionStorage.getItem('dg_banner_dismissed') !== '1'){
+  document.getElementById('install-banner').classList.add('show');
+}
+document.getElementById('install-dismiss').addEventListener('click', () => {
+  document.getElementById('install-banner').classList.remove('show');
+  sessionStorage.setItem('dg_banner_dismissed', '1');
+});
+
+// --- Compartir enlace ---
+document.getElementById('menu-share').addEventListener('click', async () => {
+  menu.classList.remove('show');
+  const url = window.location.href.split('?')[0];
+  if(navigator.share){
+    try{ await navigator.share({ title: 'DóndeGuardé', text: 'Usa esta app conmigo para saber dónde guardamos las cosas:', url }); }
+    catch(e){ /* cancelado por el usuario, sin problema */ }
+  }else{
+    try{ await navigator.clipboard.writeText(url); showToast('Enlace copiado'); }
+    catch(e){ showToast(url, false); }
+  }
+});
 
 // --- Menú exportar / importar ---
 const menuBtn = document.getElementById('menu-btn');
