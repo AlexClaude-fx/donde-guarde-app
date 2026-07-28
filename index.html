@@ -48,7 +48,7 @@
     position:relative;overflow:hidden;
     box-shadow:inset 0 0 30px rgba(0,0,0,0.4), 0 4px 18px rgba(0,0,0,0.35);
   }
-  .recorder::before{content:'✦ ELIGE TU VARITA ✦';position:absolute;top:10px;left:0;right:0;text-align:center;font-size:9px;letter-spacing:3px;color:var(--gold-dim);font-family:'Cinzel Decorative',serif;}
+  .recorder::before{content:'';}
 
   #mic-btn{
     width:86px;height:86px;border-radius:50%;
@@ -384,12 +384,13 @@ function render(){
 
 function attachSwipeHandlers(){
   document.querySelectorAll('.label-wrap').forEach(wrap => {
-    let startX = 0, currentX = 0, dragging = false;
+    let startX = 0, currentX = 0, dragging = false, moved = false;
     const labelEl = wrap.querySelector('.label');
-    wrap.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; dragging = true; }, {passive:true});
+    wrap.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; dragging = true; moved = false; }, {passive:true});
     wrap.addEventListener('touchmove', (e) => {
       if(!dragging) return;
       currentX = e.touches[0].clientX - startX;
+      if(Math.abs(currentX) > 6) moved = true;
       if(currentX < 0 && currentX > -104){ labelEl.style.transform = `translateX(${currentX}px)`; }
     }, {passive:true});
     wrap.addEventListener('touchend', () => {
@@ -399,7 +400,9 @@ function attachSwipeHandlers(){
       currentX = 0;
     });
     wrap.addEventListener('click', (e) => {
-      if(wrap.classList.contains('swiped') && !e.target.closest('.label-actions')){ wrap.classList.remove('swiped'); }
+      if(e.target.closest('.label-actions')) return;
+      if(wrap.classList.contains('swiped')){ wrap.classList.remove('swiped'); return; }
+      if(!moved){ openEdit(wrap.dataset.id); }
     });
   });
 }
@@ -421,7 +424,10 @@ function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 
 function parseSpeech(text){
   let t = text.trim();
-  t = t.replace(/^(he\s+)?(guardado|guardé|puse|pongo|dejé|dejo|metí|meto)\s+/i, '');
+  // Formas compuestas: "voy a guardar", "acabo de meter", "estoy dejando", "vamos a poner"...
+  t = t.replace(/^(voy a|vas a|va a|vamos a|acabo de|acabas de|acaba de|estoy|estás|está)\s+(guardando|guardar|metiendo|meter|poniendo|poner|dejando|dejar)\s+/i, '');
+  // Formas simples: "guardé", "guardo", "guarda", "he guardado", "puse", "pon", "dejé", "metí"...
+  t = t.replace(/^(he\s+|has\s+|ha\s+)?(guardado|guardé|guardo|guarda|puesto|puse|pongo|pon|dejado|dejé|dejo|deja|metido|metí|meto|mete)\s+/i, '');
   const connectors = /\s+(en|dentro de|debajo de|encima de|detrás de|sobre|junto a)\s+/i;
   const match = t.match(connectors);
   if(match){
