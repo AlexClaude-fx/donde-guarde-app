@@ -182,6 +182,11 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+  // Falla en modo privado, varias pestañas sin synchronizeTabs, o navegador no compatible.
+  // La app sigue funcionando, simplemente sin caché offline.
+  console.warn('Persistencia offline no disponible:', err.code);
+});
 const col = db.collection('objetos');
 
 let items = [];
@@ -207,15 +212,23 @@ document.getElementById('who-btn').addEventListener('click', () => {
 
 // --- Firestore real-time sync ---
 col.orderBy('ts', 'desc').onSnapshot(
+  { includeMetadataChanges: true },
   (snapshot) => {
     items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-    document.getElementById('sync-dot').classList.remove('off');
-    document.getElementById('sync-text').textContent = 'Sincronizado';
+    const dot = document.getElementById('sync-dot');
+    const text = document.getElementById('sync-text');
+    if(snapshot.metadata.fromCache){
+      dot.classList.add('off');
+      text.textContent = 'Sin conexión — guardado local, pendiente de sincronizar';
+    }else{
+      dot.classList.remove('off');
+      text.textContent = 'Sincronizado';
+    }
     render();
   },
   (err) => {
     document.getElementById('sync-dot').classList.add('off');
-    document.getElementById('sync-text').textContent = 'Sin conexión con la base de datos compartida';
+    document.getElementById('sync-text').textContent = 'Error de conexión con la base de datos';
   }
 );
 
