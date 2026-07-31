@@ -428,6 +428,8 @@ function parseSpeech(text){
   t = t.replace(/^(voy a|vas a|va a|vamos a|acabo de|acabas de|acaba de|estoy|estás|está)\s+(guardando|guardar|metiendo|meter|poniendo|poner|dejando|dejar)\s+/i, '');
   // Formas simples: "guardé", "guardo", "guarda", "he guardado", "puse", "pon", "dejé", "metí"...
   t = t.replace(/^(he\s+|has\s+|ha\s+)?(guardado|guardé|guardo|guarda|puesto|puse|pongo|pon|dejado|dejé|dejo|deja|metido|metí|meto|mete)\s+/i, '');
+  // Resto suelto de construcciones compuestas: "dejé guardado X", "tengo guardado X"...
+  t = t.replace(/^(guardado|guardada|guardados|guardadas)\s+/i, '');
   const connectors = /\s+(en|dentro de|debajo de|encima de|detrás de|sobre|junto a)\s+/i;
   const match = t.match(connectors);
   if(match){
